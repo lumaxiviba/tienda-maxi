@@ -60,11 +60,13 @@ try {
 // swaggerDocs(app);
 
 // Ruta para manejar todas las solicitudes que no sean API
-app.get('*', (req, res) => {
-  // Si la ruta no empieza con /api, servimos el index.html
+// Usamos app.use en lugar de app.get('*') para evitar pasar la cadena '*'
+// a path-to-regexp (algunas versiones no aceptan '*' sin nombre de parámetro).
+app.use((req, res, next) => {
   if (!req.path.startsWith('/api')) {
-    res.sendFile(path.join(__dirname, 'frontend', 'index.html'));
+    return res.sendFile(path.join(__dirname, 'frontend', 'index.html'));
   }
+  next();
 });
 
 const PORT = process.env.PORT || 3000;
