@@ -38,8 +38,14 @@ const options = {
 const swaggerSpec = swaggerJsdoc(options);
 
 function swaggerDocs(app) {
-  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-  console.log("📄 Documentación Swagger disponible en /api-docs");
+  try {
+    console.log('-> Registrando Swagger en /api-docs');
+    app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+    console.log("📄 Documentación Swagger disponible en /api-docs");
+  } catch (e) {
+    console.error('Error al registrar Swagger:', e);
+    throw e;
+  }
 }
 
 module.exports = { swaggerDocs };
