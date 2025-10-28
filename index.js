@@ -56,8 +56,8 @@ try {
   throw e;
 }
 
-// Documentación Swagger
-swaggerDocs(app);
+// Documentación Swagger (temporalmente deshabilitado para depurar error)
+// swaggerDocs(app);
 
 // Ruta para manejar todas las solicitudes que no sean API
 app.get('*', (req, res) => {
