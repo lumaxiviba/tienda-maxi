@@ -12,7 +12,9 @@ const options = {
     },
     servers: [
       {
-        url: 'http://localhost:3000/api',
+        url: process.env.NODE_ENV === 'production' 
+          ? 'https://tienda-maxi.onrender.com/api'
+          : 'http://localhost:3000/api',
       },
     ],
     components: {
