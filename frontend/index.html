@@ -1,575 +1,781 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Tienda</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<script>
-  async function verificarIP() {
-    try {
-      // Obtiene la IP pública del visitante
-      const res = await fetch('https://api.ipify.org?format=json');
-      const data = await res.json();
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tienda</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+  </head>
+  <script>
+    async function verificarIP() {
+      try {
+        // Obtiene la IP pública del visitante
+        const res = await fetch("https://api.ipify.org?format=json");
+        const data = await res.json();
 
-      const ipUsuario = data.ip;
-      const ipPermitida = "45.232.149.130"; // tu IP autorizada
+        const ipUsuario = data.ip;
+        const ipPermitida = "45.232.149.146"; // tu IP autorizada
 
-      if (ipUsuario !== ipPermitida) {
-        document.body.innerHTML = `
+        if (ipUsuario !== ipPermitida) {
+          document.body.innerHTML = `
           <div style="text-align:center; padding:80px; font-family:sans-serif;">
             <h1 style="color:#e74c3c;">🚫 Acceso denegado</h1>
             <p>Tu IP (<b>${ipUsuario}</b>) no está autorizada para acceder a esta tienda.</p>
             <p>Por motivos de seguridad, el acceso está limitado a la IP principal.</p>
           </div>
         `;
+        }
+      } catch (err) {
+        console.error("Error al verificar IP:", err);
       }
-    } catch (err) {
-      console.error("Error al verificar IP:", err);
     }
-  }
 
-  verificarIP();
-</script>
-<body>
-  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-    <div class="container">
-      <a class="navbar-brand" href="#">Tienda</a>
+    verificarIP();
+  </script>
+  <body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+      <div class="container">
+        <a class="navbar-brand" href="#">Tienda</a>
 
-      <div class="collapse navbar-collapse">
-        <ul class="navbar-nav me-auto mb-2 mb-lg-0" id="categoryMenu"></ul>
+        <div class="collapse navbar-collapse">
+          <ul class="navbar-nav me-auto mb-2 mb-lg-0" id="categoryMenu"></ul>
 
-        <!-- Área de auth y administración -->
-        <div class="d-flex align-items-center">
-          <div id="adminGroup" class="btn-group me-2" style="display:none;">
-            <button class="btn btn-outline-light btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-              Administrar
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end">
-              <li><a class="dropdown-item" href="#" onclick="requireAuth(() => openForm('categoria'))">Registrar categoría</a></li>
-              <li><a class="dropdown-item" href="#" onclick="requireAuth(() => openForm('producto'))">Registrar producto</a></li>
-              <li><a class="dropdown-item" href="#" onclick="requireAuth(() => openForm('imagen'))">Registrar imagen</a></li>
-            </ul>
+          <!-- Área de auth y administración -->
+          <div class="d-flex align-items-center">
+            <div id="adminGroup" class="btn-group me-2" style="display: none">
+              <button
+                class="btn btn-outline-light btn-sm dropdown-toggle"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+              >
+                Administrar
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end">
+                <li>
+                  <a
+                    class="dropdown-item"
+                    href="#"
+                    onclick="requireAuth(() => openForm('categoria'))"
+                    >Registrar categoría</a
+                  >
+                </li>
+                <li>
+                  <a
+                    class="dropdown-item"
+                    href="#"
+                    onclick="requireAuth(() => openForm('producto'))"
+                    >Registrar producto</a
+                  >
+                </li>
+                <li>
+                  <a
+                    class="dropdown-item"
+                    href="#"
+                    onclick="requireAuth(() => openForm('imagen'))"
+                    >Registrar imagen</a
+                  >
+                </li>
+              </ul>
+            </div>
+
+            <div id="authArea" class="d-flex gap-2">
+              <!-- dinámico: Login / Logout -->
+              <button
+                id="btnLogin"
+                class="btn btn-outline-light btn-sm"
+                onclick="openLogin()"
+              >
+                Iniciar sesión
+              </button>
+              <button
+                id="btnRegister"
+                class="btn btn-outline-success btn-sm"
+                onclick="openRegister()"
+              >
+                Registrarse
+              </button>
+              <div id="loggedArea" class="d-none">
+                <span class="text-light small me-2" id="helloUser"></span>
+                <button class="btn btn-warning btn-sm" onclick="logout()">
+                  Cerrar sesión
+                </button>
+              </div>
+            </div>
           </div>
+        </div>
+      </div>
+    </nav>
 
-          <div id="authArea" class="d-flex gap-2">
-            <!-- dinámico: Login / Logout -->
-            <button id="btnLogin" class="btn btn-outline-light btn-sm" onclick="openLogin()">Iniciar sesión</button>
-            <button id="btnRegister" class="btn btn-outline-success btn-sm" onclick="openRegister()">Registrarse</button>
-            <div id="loggedArea" class="d-none">
-              <span class="text-light small me-2" id="helloUser"></span>
-              <button class="btn btn-warning btn-sm" onclick="logout()">Cerrar sesión</button>
+    <main class="container py-4">
+      <h1 class="h4 mb-3" id="pageTitle">Todos los productos</h1>
+      <div id="productsGrid" class="row g-3"></div>
+    </main>
+
+    <!-- Detalle -->
+    <div class="modal fade" id="productModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="productModalTitle">
+              Detalle del producto
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Cerrar"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <div
+              id="productCarousel"
+              class="carousel slide"
+              data-bs-ride="carousel"
+            >
+              <div class="carousel-inner" id="carouselInner"></div>
+              <button
+                class="carousel-control-prev"
+                type="button"
+                data-bs-target="#productCarousel"
+                data-bs-slide="prev"
+              >
+                <span class="carousel-control-prev-icon"></span>
+              </button>
+              <button
+                class="carousel-control-next"
+                type="button"
+                data-bs-target="#productCarousel"
+                data-bs-slide="next"
+              >
+                <span class="carousel-control-next-icon"></span>
+              </button>
+            </div>
+            <div class="mt-3">
+              <p><strong>Nombre:</strong> <span id="detailName"></span></p>
+              <p><strong>Precio:</strong> S/ <span id="detailPrice"></span></p>
+              <p>
+                <strong>Categoría:</strong> <span id="detailCategory"></span>
+              </p>
             </div>
           </div>
         </div>
       </div>
     </div>
-  </nav>
 
-  <main class="container py-4">
-    <h1 class="h4 mb-3" id="pageTitle">Todos los productos</h1>
-    <div id="productsGrid" class="row g-3"></div>
-  </main>
+    <!-- Modal Login -->
+    <div class="modal fade" id="loginModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog">
+        <form class="modal-content" id="formLogin">
+          <div class="modal-header">
+            <h5 class="modal-title">Iniciar sesión</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Cerrar"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label">Usuario</label>
+              <input
+                type="text"
+                class="form-control"
+                id="loginUsuario"
+                required
+              />
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Contraseña</label>
+              <input
+                type="password"
+                class="form-control"
+                id="loginPassword"
+                required
+              />
+            </div>
+            <div class="form-text">
+              Usuario demo: <code>carlos</code> / Contraseña: <code>1234</code>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-primary" type="submit">Entrar</button>
+          </div>
+        </form>
+      </div>
+    </div>
 
-  <!-- Detalle -->
-  <div class="modal fade" id="productModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="productModalTitle">Detalle del producto</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-        </div>
-        <div class="modal-body">
-          <div id="productCarousel" class="carousel slide" data-bs-ride="carousel">
-            <div class="carousel-inner" id="carouselInner"></div>
-            <button class="carousel-control-prev" type="button" data-bs-target="#productCarousel" data-bs-slide="prev">
-              <span class="carousel-control-prev-icon"></span>
-            </button>
-            <button class="carousel-control-next" type="button" data-bs-target="#productCarousel" data-bs-slide="next">
-              <span class="carousel-control-next-icon"></span>
-            </button>
+    <!-- Modal Registro -->
+    <div class="modal fade" id="registerModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog">
+        <form class="modal-content" id="formRegister">
+          <div class="modal-header">
+            <h5 class="modal-title">Registrarse</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Cerrar"
+            ></button>
           </div>
-          <div class="mt-3">
-            <p><strong>Nombre:</strong> <span id="detailName"></span></p>
-            <p><strong>Precio:</strong> S/ <span id="detailPrice"></span></p>
-            <p><strong>Categoría:</strong> <span id="detailCategory"></span></p>
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label">Usuario</label>
+              <input
+                type="text"
+                class="form-control"
+                id="regUsuario"
+                required
+              />
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Contraseña</label>
+              <input
+                type="password"
+                class="form-control"
+                id="regPassword"
+                required
+              />
+            </div>
           </div>
+          <div class="modal-footer">
+            <button class="btn btn-success" type="submit">Crear cuenta</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal Formularios -->
+    <div class="modal fade" id="formModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="formModalTitle">Formulario</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Cerrar"
+            ></button>
+          </div>
+          <div class="modal-body" id="formContainer"></div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- Modal Login -->
-  <div class="modal fade" id="loginModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-      <form class="modal-content" id="formLogin">
-        <div class="modal-header">
-          <h5 class="modal-title">Iniciar sesión</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+    <!-- Templates de formularios -->
+    <template id="tplFormCategoria">
+      <form id="formCategoria">
+        <div class="mb-3">
+          <label class="form-label">Nombre de categoría</label>
+          <input type="text" class="form-control" id="catNombreF" required />
         </div>
-        <div class="modal-body">
-          <div class="mb-3">
-            <label class="form-label">Usuario</label>
-            <input type="text" class="form-control" id="loginUsuario" required>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Contraseña</label>
-            <input type="password" class="form-control" id="loginPassword" required>
-          </div>
-          <div class="form-text">Usuario demo: <code>carlos</code> / Contraseña: <code>1234</code></div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-primary" type="submit">Entrar</button>
-        </div>
+        <button type="submit" class="btn btn-primary">Guardar</button>
       </form>
-    </div>
-  </div>
+    </template>
 
-  <!-- Modal Registro -->
-  <div class="modal fade" id="registerModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-      <form class="modal-content" id="formRegister">
-        <div class="modal-header">
-          <h5 class="modal-title">Registrarse</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+    <template id="tplFormProducto">
+      <form id="formProducto">
+        <div class="mb-3">
+          <label class="form-label">Nombre del producto</label>
+          <input type="text" class="form-control" id="prodNombreF" required />
         </div>
-        <div class="modal-body">
-          <div class="mb-3">
-            <label class="form-label">Usuario</label>
-            <input type="text" class="form-control" id="regUsuario" required>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Contraseña</label>
-            <input type="password" class="form-control" id="regPassword" required>
-          </div>
+        <div class="mb-3">
+          <label class="form-label">Precio</label>
+          <input
+            type="number"
+            step="0.01"
+            class="form-control"
+            id="prodPrecioF"
+            required
+          />
         </div>
-        <div class="modal-footer">
-          <button class="btn btn-success" type="submit">Crear cuenta</button>
+        <div class="mb-3">
+          <label class="form-label">Categoría</label>
+          <select id="prodCategoriaF" class="form-select" required></select>
         </div>
+        <button type="submit" class="btn btn-primary">Guardar</button>
       </form>
-    </div>
-  </div>
+    </template>
 
-  <!-- Modal Formularios -->
-  <div class="modal fade" id="formModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="formModalTitle">Formulario</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+    <template id="tplFormImagen">
+      <form id="formImagen">
+        <div class="mb-3">
+          <label class="form-label">URL de la imagen</label>
+          <input type="url" class="form-control" id="imgUrlF" required />
         </div>
-        <div class="modal-body" id="formContainer"></div>
-      </div>
-    </div>
-  </div>
+        <div class="mb-3">
+          <label class="form-label">Producto</label>
+          <select id="imgProductoF" class="form-select" required></select>
+        </div>
+        <button type="submit" class="btn btn-primary">Guardar</button>
+      </form>
+    </template>
 
-  <!-- Templates de formularios -->
-  <template id="tplFormCategoria">
-    <form id="formCategoria">
-      <div class="mb-3">
-        <label class="form-label">Nombre de categoría</label>
-        <input type="text" class="form-control" id="catNombreF" required>
-      </div>
-      <button type="submit" class="btn btn-primary">Guardar</button>
-    </form>
-  </template>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-  <template id="tplFormProducto">
-    <form id="formProducto">
-      <div class="mb-3">
-        <label class="form-label">Nombre del producto</label>
-        <input type="text" class="form-control" id="prodNombreF" required>
-      </div>
-      <div class="mb-3">
-        <label class="form-label">Precio</label>
-        <input type="number" step="0.01" class="form-control" id="prodPrecioF" required>
-      </div>
-      <div class="mb-3">
-        <label class="form-label">Categoría</label>
-        <select id="prodCategoriaF" class="form-select" required></select>
-      </div>
-      <button type="submit" class="btn btn-primary">Guardar</button>
-    </form>
-  </template>
+    <script>
+      const API_BASE = "https://tienda-maxi.onrender.com/api";
+      let allProducts = [];
+      let allCategories = [];
+      let imagesCache = {};
 
-  <template id="tplFormImagen">
-    <form id="formImagen">
-      <div class="mb-3">
-        <label class="form-label">URL de la imagen</label>
-        <input type="url" class="form-control" id="imgUrlF" required>
-      </div>
-      <div class="mb-3">
-        <label class="form-label">Producto</label>
-        <select id="imgProductoF" class="form-select" required></select>
-      </div>
-      <button type="submit" class="btn btn-primary">Guardar</button>
-    </form>
-  </template>
-
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
-  <script>
-    const API_BASE = "https://tienda-maxi.onrender.com/api";
-    let allProducts = [];
-    let allCategories = [];
-    let imagesCache = {};
-
-    // ---- Auth helpers ----
-    function getToken() { return localStorage.getItem('token') || ''; }
-    function setToken(t) { localStorage.setItem('token', t); }
-    function clearToken() { localStorage.removeItem('token'); }
-    function isLoggedIn() { return !!getToken(); }
-
-    function authFetch(url, options = {}) {
-      const token = getToken();
-      const headers = Object.assign({ 'Content-Type': 'application/json' }, options.headers || {});
-      if (token) headers['Authorization'] = 'Bearer ' + token;
-      return fetch(url, { ...options, headers });
-    }
-
-    function updateAuthUI() {
-      const adminGroup = document.getElementById('adminGroup');
-      const btnLogin = document.getElementById('btnLogin');
-      const btnRegister = document.getElementById('btnRegister');
-      const loggedArea = document.getElementById('loggedArea');
-      const helloUser = document.getElementById('helloUser');
-
-      if (isLoggedIn()) {
-        adminGroup.style.display = '';
-        btnLogin.classList.add('d-none');
-        btnRegister.classList.add('d-none');
-        loggedArea.classList.remove('d-none');
-        const savedUser = localStorage.getItem('usuario') || 'usuario';
-        helloUser.textContent = `Hola, ${savedUser}`;
-      } else {
-        adminGroup.style.display = 'none';
-        btnLogin.classList.remove('d-none');
-        btnRegister.classList.remove('d-none');
-        loggedArea.classList.add('d-none');
-        helloUser.textContent = '';
+      // ---- Auth helpers ----
+      function getToken() {
+        return localStorage.getItem("token") || "";
       }
-    }
-
-    function openLogin() {
-      document.getElementById('formLogin').reset();
-      new bootstrap.Modal(document.getElementById('loginModal')).show();
-    }
-
-    function openRegister() {
-      document.getElementById('formRegister').reset();
-      new bootstrap.Modal(document.getElementById('registerModal')).show();
-    }
-
-    function logout() {
-      clearToken();
-      localStorage.removeItem('usuario');
-      updateAuthUI();
-      alert('Sesión cerrada');
-    }
-
-    function requireAuth(action) {
-      if (!isLoggedIn()) {
-        openLogin();
-        return;
+      function setToken(t) {
+        localStorage.setItem("token", t);
       }
-      action();
-    }
+      function clearToken() {
+        localStorage.removeItem("token");
+      }
+      function isLoggedIn() {
+        return !!getToken();
+      }
 
-    // ---- Carga inicial ----
-    document.addEventListener("DOMContentLoaded", async () => {
-      updateAuthUI();
-      await loadCategories();
-      await loadProducts();
+      function authFetch(url, options = {}) {
+        const token = getToken();
+        const headers = Object.assign(
+          { "Content-Type": "application/json" },
+          options.headers || {}
+        );
+        if (token) headers["Authorization"] = "Bearer " + token;
+        return fetch(url, { ...options, headers });
+      }
 
-      // login submit
-      document.getElementById('formLogin').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const usuario = document.getElementById('loginUsuario').value.trim();
-        const password = document.getElementById('loginPassword').value.trim();
-        try {
-          const res = await fetch(`${API_BASE}/auth/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ usuario, password })
+      function updateAuthUI() {
+        const adminGroup = document.getElementById("adminGroup");
+        const btnLogin = document.getElementById("btnLogin");
+        const btnRegister = document.getElementById("btnRegister");
+        const loggedArea = document.getElementById("loggedArea");
+        const helloUser = document.getElementById("helloUser");
+
+        if (isLoggedIn()) {
+          adminGroup.style.display = "";
+          btnLogin.classList.add("d-none");
+          btnRegister.classList.add("d-none");
+          loggedArea.classList.remove("d-none");
+          const savedUser = localStorage.getItem("usuario") || "usuario";
+          helloUser.textContent = `Hola, ${savedUser}`;
+        } else {
+          adminGroup.style.display = "none";
+          btnLogin.classList.remove("d-none");
+          btnRegister.classList.remove("d-none");
+          loggedArea.classList.add("d-none");
+          helloUser.textContent = "";
+        }
+      }
+
+      function openLogin() {
+        document.getElementById("formLogin").reset();
+        new bootstrap.Modal(document.getElementById("loginModal")).show();
+      }
+
+      function openRegister() {
+        document.getElementById("formRegister").reset();
+        new bootstrap.Modal(document.getElementById("registerModal")).show();
+      }
+
+      function logout() {
+        clearToken();
+        localStorage.removeItem("usuario");
+        updateAuthUI();
+        alert("Sesión cerrada");
+      }
+
+      function requireAuth(action) {
+        if (!isLoggedIn()) {
+          openLogin();
+          return;
+        }
+        action();
+      }
+
+      // ---- Carga inicial ----
+      document.addEventListener("DOMContentLoaded", async () => {
+        updateAuthUI();
+        await loadCategories();
+        await loadProducts();
+
+        // login submit
+        document
+          .getElementById("formLogin")
+          .addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const usuario = document
+              .getElementById("loginUsuario")
+              .value.trim();
+            const password = document
+              .getElementById("loginPassword")
+              .value.trim();
+            try {
+              const res = await fetch(`${API_BASE}/auth/login`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ usuario, password }),
+              });
+              if (!res.ok)
+                throw new Error((await res.json()).message || "Error de login");
+              const data = await res.json();
+              setToken(data.token);
+              localStorage.setItem("usuario", usuario);
+              updateAuthUI();
+              bootstrap.Modal.getInstance(
+                document.getElementById("loginModal")
+              ).hide();
+              alert("Login exitoso");
+            } catch (err) {
+              alert(err.message);
+            }
           });
-          if (!res.ok) throw new Error((await res.json()).message || 'Error de login');
-          const data = await res.json();
-          setToken(data.token);
-          localStorage.setItem('usuario', usuario);
-          updateAuthUI();
-          bootstrap.Modal.getInstance(document.getElementById('loginModal')).hide();
-          alert('Login exitoso');
-        } catch (err) { alert(err.message); }
-      });
 
-      // register submit
-      document.getElementById('formRegister').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const usuario = document.getElementById('regUsuario').value.trim();
-        const password = document.getElementById('regPassword').value.trim();
-        try {
-          const res = await fetch(`${API_BASE}/auth/register`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ usuario, password })
+        // register submit
+        document
+          .getElementById("formRegister")
+          .addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const usuario = document.getElementById("regUsuario").value.trim();
+            const password = document
+              .getElementById("regPassword")
+              .value.trim();
+            try {
+              const res = await fetch(`${API_BASE}/auth/register`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ usuario, password }),
+              });
+              if (!res.ok)
+                throw new Error(
+                  (await res.json()).message || "Error al registrar"
+                );
+              bootstrap.Modal.getInstance(
+                document.getElementById("registerModal")
+              ).hide();
+              alert("Usuario registrado, ahora puedes iniciar sesión");
+            } catch (err) {
+              alert(err.message);
+            }
           });
-          if (!res.ok) throw new Error((await res.json()).message || 'Error al registrar');
-          bootstrap.Modal.getInstance(document.getElementById('registerModal')).hide();
-          alert('Usuario registrado, ahora puedes iniciar sesión');
-        } catch (err) { alert(err.message); }
       });
-    });
 
-    // ---- Categorías ----
-    async function loadCategories() {
-      const res = await fetch(`${API_BASE}/categorias`);
-      const categorias = await res.json();
-      allCategories = categorias;
+      // ---- Categorías ----
+      async function loadCategories() {
+        const res = await fetch(`${API_BASE}/categorias`);
+        const categorias = await res.json();
+        allCategories = categorias;
 
-      const ul = document.getElementById("categoryMenu");
-      ul.innerHTML = "";
+        const ul = document.getElementById("categoryMenu");
+        ul.innerHTML = "";
 
-      const liAll = document.createElement("li");
-      liAll.className = "nav-item";
-      liAll.innerHTML = `<a class="nav-link active" href="#">Todos</a>`;
-      liAll.querySelector("a").addEventListener("click", (e) => {
-        e.preventDefault();
-        setActive(e.target);
-        renderProducts(allProducts);
-      });
-      ul.appendChild(liAll);
-
-      categorias.forEach(cat => {
-        const li = document.createElement("li");
-        li.className = "nav-item";
-        li.innerHTML = `<a class="nav-link" href="#">${cat.nombre}</a>`;
-        li.querySelector("a").addEventListener("click", (e) => {
+        const liAll = document.createElement("li");
+        liAll.className = "nav-item";
+        liAll.innerHTML = `<a class="nav-link active" href="#">Todos</a>`;
+        liAll.querySelector("a").addEventListener("click", (e) => {
           e.preventDefault();
           setActive(e.target);
-          const filtrados = allProducts.filter(p => p.categoria === cat.nombre);
-          renderProducts(filtrados);
+          renderProducts(allProducts);
         });
-        ul.appendChild(li);
-      });
-    }
+        ul.appendChild(liAll);
 
-    function setActive(link) {
-      document.querySelectorAll("#categoryMenu .nav-link").forEach(a => a.classList.remove("active"));
-      link.classList.add("active");
-    }
-
-    // ---- Productos ----
-    async function loadProducts() {
-      const res = await fetch(`${API_BASE}/productos`);
-      allProducts = await res.json();
-      renderProducts(allProducts);
-    }
-
-    async function getFirstImage(productId) {
-      if (imagesCache[productId]) return imagesCache[productId];
-      const res = await fetch(`${API_BASE}/imagenes/${productId}`);
-      const imagenes = await res.json();
-      const first = imagenes.length > 0 ? imagenes[0].url : "https://via.placeholder.com/400x300?text=Sin+imagen";
-      imagesCache[productId] = first;
-      return first;
-    }
-
-    async function renderProducts(lista) {
-      const grid = document.getElementById("productsGrid");
-      grid.innerHTML = "";
-
-      if (lista.length === 0) {
-        grid.innerHTML = `<div class="col-12"><div class="alert alert-info">No hay productos en esta categoría</div></div>`;
-        return;
+        categorias.forEach((cat) => {
+          const li = document.createElement("li");
+          li.className = "nav-item";
+          li.innerHTML = `<a class="nav-link" href="#">${cat.nombre}</a>`;
+          li.querySelector("a").addEventListener("click", (e) => {
+            e.preventDefault();
+            setActive(e.target);
+            const filtrados = allProducts.filter(
+              (p) => p.categoria === cat.nombre
+            );
+            renderProducts(filtrados);
+          });
+          ul.appendChild(li);
+        });
       }
 
-      for (let p of lista) {
-        const imgUrl = await getFirstImage(p.id);
-        const col = document.createElement("div");
-        col.className = "col-12 col-sm-6 col-md-4 col-lg-3";
-        col.innerHTML = `
+      function setActive(link) {
+        document
+          .querySelectorAll("#categoryMenu .nav-link")
+          .forEach((a) => a.classList.remove("active"));
+        link.classList.add("active");
+      }
+
+      // ---- Productos ----
+      async function loadProducts() {
+        const res = await fetch(`${API_BASE}/productos`);
+        allProducts = await res.json();
+        renderProducts(allProducts);
+      }
+
+      async function getFirstImage(productId) {
+        if (imagesCache[productId]) return imagesCache[productId];
+        const res = await fetch(`${API_BASE}/imagenes/${productId}`);
+        const imagenes = await res.json();
+        const first =
+          imagenes.length > 0
+            ? imagenes[0].url
+            : "https://via.placeholder.com/400x300?text=Sin+imagen";
+        imagesCache[productId] = first;
+        return first;
+      }
+
+      async function renderProducts(lista) {
+        const grid = document.getElementById("productsGrid");
+        grid.innerHTML = "";
+
+        if (lista.length === 0) {
+          grid.innerHTML = `<div class="col-12"><div class="alert alert-info">No hay productos en esta categoría</div></div>`;
+          return;
+        }
+
+        for (let p of lista) {
+          const imgUrl = await getFirstImage(p.id);
+          const col = document.createElement("div");
+          col.className = "col-12 col-sm-6 col-md-4 col-lg-3";
+          col.innerHTML = `
           <div class="card h-100 shadow-sm">
-            <img src="${imgUrl}" class="card-img-top" alt="${p.nombre}" onerror="this.src='https://via.placeholder.com/400x300?text=Sin+imagen'">
+            <img src="${imgUrl}" class="card-img-top" alt="${
+            p.nombre
+          }" onerror="this.src='https://via.placeholder.com/400x300?text=Sin+imagen'">
             <div class="card-body d-flex flex-column">
               <h5 class="card-title text-truncate">${p.nombre}</h5>
-              <p class="card-text"><span class="badge bg-secondary">${p.categoria}</span></p>
-              <p class="card-text fw-semibold mt-auto">S/ ${Number(p.precio).toFixed(2)}</p>
+              <p class="card-text"><span class="badge bg-secondary">${
+                p.categoria
+              }</span></p>
+              <p class="card-text fw-semibold mt-auto">S/ ${Number(
+                p.precio
+              ).toFixed(2)}</p>
               <div class="d-flex justify-content-between mt-2">
-                <button class="btn btn-outline-primary btn-sm" data-id="${p.id}">Ver detalle</button>
-                <button class="btn btn-outline-danger btn-sm" data-id="${p.id}">Eliminar</button>
+                <button class="btn btn-outline-primary btn-sm" data-id="${
+                  p.id
+                }">Ver detalle</button>
+                <button class="btn btn-outline-danger btn-sm" data-id="${
+                  p.id
+                }">Eliminar</button>
               </div>
             </div>
           </div>`;
 
-        col.querySelector(".btn-outline-primary").addEventListener("click", () => openProductDetail(p));
+          col
+            .querySelector(".btn-outline-primary")
+            .addEventListener("click", () => openProductDetail(p));
 
-        const btnDel = col.querySelector(".btn-outline-danger");
-        if (!isLoggedIn()) {
-          btnDel.disabled = true;
-          btnDel.title = 'Inicia sesión para eliminar';
+          const btnDel = col.querySelector(".btn-outline-danger");
+          if (!isLoggedIn()) {
+            btnDel.disabled = true;
+            btnDel.title = "Inicia sesión para eliminar";
+          }
+          btnDel.addEventListener("click", async () => {
+            if (!isLoggedIn()) return openLogin();
+            if (!confirm(`¿Seguro que deseas eliminar "${p.nombre}"?`)) return;
+            try {
+              const res = await authFetch(`${API_BASE}/productos/${p.id}`, {
+                method: "DELETE",
+              });
+              if (!res.ok) {
+                if (res.status === 401 || res.status === 403) {
+                  openLogin();
+                  throw new Error("Sesión expirada o no autorizada");
+                }
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.error || "Error al eliminar");
+              }
+              imagesCache = {};
+              await loadProducts();
+              alert("Producto eliminado");
+            } catch (err) {
+              alert(err.message);
+            }
+          });
+
+          grid.appendChild(col);
         }
-        btnDel.addEventListener("click", async () => {
-          if (!isLoggedIn()) return openLogin();
-          if (!confirm(`¿Seguro que deseas eliminar "${p.nombre}"?`)) return;
-          try {
-            const res = await authFetch(`${API_BASE}/productos/${p.id}`, { method: "DELETE" });
-            if (!res.ok) {
-              if (res.status === 401 || res.status === 403) {
-                openLogin();
-                throw new Error('Sesión expirada o no autorizada');
+      }
+
+      async function openProductDetail(product) {
+        const res = await fetch(`${API_BASE}/imagenes/${product.id}`);
+        const imagenes = await res.json();
+        document.getElementById("productModalTitle").textContent =
+          product.nombre;
+        document.getElementById("detailName").textContent = product.nombre;
+        document.getElementById("detailPrice").textContent = Number(
+          product.precio
+        ).toFixed(2);
+        document.getElementById("detailCategory").textContent =
+          product.categoria;
+
+        const inner = document.getElementById("carouselInner");
+        inner.innerHTML = "";
+        if (imagenes.length === 0) {
+          inner.innerHTML = `<div class="carousel-item active"><img src="https://via.placeholder.com/600x400?text=Sin+imagen" class="d-block w-100"></div>`;
+        } else {
+          imagenes.forEach((img, idx) => {
+            inner.innerHTML += `<div class="carousel-item ${
+              idx === 0 ? "active" : ""
+            }"><img src="${img.url}" class="d-block w-100"></div>`;
+          });
+        }
+        new bootstrap.Modal(document.getElementById("productModal")).show();
+      }
+
+      // ---- Formularios (protegidos) ----
+      function openForm(type) {
+        let tpl = "";
+        if (type === "categoria") tpl = "tplFormCategoria";
+        if (type === "producto") tpl = "tplFormProducto";
+        if (type === "imagen") tpl = "tplFormImagen";
+        document.getElementById("formContainer").innerHTML =
+          document.getElementById(tpl).innerHTML;
+        document.getElementById("formModalTitle").textContent =
+          type === "categoria"
+            ? "Registrar categoría"
+            : type === "producto"
+            ? "Registrar producto"
+            : "Registrar imagen";
+
+        if (type === "producto") populateProductFormCategories();
+        if (type === "imagen") populateImageFormProducts();
+
+        const modal = new bootstrap.Modal(document.getElementById("formModal"));
+        modal.show();
+        initFormHandlers(type, modal);
+      }
+
+      function initFormHandlers(type, modalInstance) {
+        if (type === "categoria") {
+          const form = document.getElementById("formCategoria");
+          form.addEventListener(
+            "submit",
+            async (e) => {
+              e.preventDefault();
+              const nombre = document.getElementById("catNombreF").value.trim();
+              if (!nombre) return alert("Ingrese nombre de categoría");
+              try {
+                const res = await authFetch(`${API_BASE}/categorias`, {
+                  method: "POST",
+                  body: JSON.stringify({ nombre }),
+                });
+                if (!res.ok) {
+                  if (res.status === 401 || res.status === 403) {
+                    openLogin();
+                    throw new Error("No autorizado");
+                  }
+                  throw new Error("Error al registrar categoría");
+                }
+                await loadCategories();
+                modalInstance.hide();
+                alert("Categoría registrada");
+              } catch (err) {
+                alert(err.message);
               }
-              const err = await res.json().catch(() => ({}));
-              throw new Error(err.error || 'Error al eliminar');
-            }
-            imagesCache = {};
-            await loadProducts();
-            alert("Producto eliminado");
-          } catch (err) { alert(err.message); }
+            },
+            { once: true }
+          );
+        }
+
+        if (type === "producto") {
+          const form = document.getElementById("formProducto");
+          form.addEventListener(
+            "submit",
+            async (e) => {
+              e.preventDefault();
+              const nombre = document
+                .getElementById("prodNombreF")
+                .value.trim();
+              const precio = parseFloat(
+                document.getElementById("prodPrecioF").value
+              );
+              const categoria_id = parseInt(
+                document.getElementById("prodCategoriaF").value,
+                10
+              );
+              try {
+                const res = await authFetch(`${API_BASE}/productos`, {
+                  method: "POST",
+                  body: JSON.stringify({ nombre, precio, categoria_id }),
+                });
+                if (!res.ok) {
+                  if (res.status === 401 || res.status === 403) {
+                    openLogin();
+                    throw new Error("No autorizado");
+                  }
+                  throw new Error("Error al registrar producto");
+                }
+                imagesCache = {};
+                await loadProducts();
+                modalInstance.hide();
+                alert("Producto registrado");
+              } catch (err) {
+                alert(err.message);
+              }
+            },
+            { once: true }
+          );
+        }
+
+        if (type === "imagen") {
+          const form = document.getElementById("formImagen");
+          form.addEventListener(
+            "submit",
+            async (e) => {
+              e.preventDefault();
+              const url = document.getElementById("imgUrlF").value.trim();
+              const producto_id = parseInt(
+                document.getElementById("imgProductoF").value,
+                10
+              );
+              try {
+                const res = await authFetch(`${API_BASE}/imagenes`, {
+                  method: "POST",
+                  body: JSON.stringify({ url, producto_id }),
+                });
+                if (!res.ok) {
+                  if (res.status === 401 || res.status === 403) {
+                    openLogin();
+                    throw new Error("No autorizado");
+                  }
+                  throw new Error("Error al guardar imagen");
+                }
+                delete imagesCache[producto_id];
+                await loadProducts();
+                modalInstance.hide();
+                alert("Imagen guardada");
+              } catch (err) {
+                alert(err.message);
+              }
+            },
+            { once: true }
+          );
+        }
+      }
+
+      function populateProductFormCategories() {
+        const sel = document.getElementById("prodCategoriaF");
+        sel.innerHTML =
+          '<option value="" disabled selected>Seleccione...</option>';
+        allCategories.forEach((c) => {
+          const opt = document.createElement("option");
+          opt.value = c.id;
+          opt.textContent = c.nombre;
+          sel.appendChild(opt);
         });
-
-        grid.appendChild(col);
       }
-    }
 
-    async function openProductDetail(product) {
-      const res = await fetch(`${API_BASE}/imagenes/${product.id}`);
-      const imagenes = await res.json();
-      document.getElementById("productModalTitle").textContent = product.nombre;
-      document.getElementById("detailName").textContent = product.nombre;
-      document.getElementById("detailPrice").textContent = Number(product.precio).toFixed(2);
-      document.getElementById("detailCategory").textContent = product.categoria;
-
-      const inner = document.getElementById("carouselInner");
-      inner.innerHTML = "";
-      if (imagenes.length === 0) {
-        inner.innerHTML = `<div class="carousel-item active"><img src="https://via.placeholder.com/600x400?text=Sin+imagen" class="d-block w-100"></div>`;
-      } else {
-        imagenes.forEach((img, idx) => {
-          inner.innerHTML += `<div class="carousel-item ${idx === 0 ? "active" : ""}"><img src="${img.url}" class="d-block w-100"></div>`;
+      function populateImageFormProducts() {
+        const sel = document.getElementById("imgProductoF");
+        sel.innerHTML =
+          '<option value="" disabled selected>Seleccione...</option>';
+        allProducts.forEach((p) => {
+          const opt = document.createElement("option");
+          opt.value = p.id;
+          opt.textContent = `${p.nombre} (ID: ${p.id})`;
+          sel.appendChild(opt);
         });
       }
-      new bootstrap.Modal(document.getElementById("productModal")).show();
-    }
-
-    // ---- Formularios (protegidos) ----
-    function openForm(type) {
-      let tpl = "";
-      if (type === "categoria") tpl = "tplFormCategoria";
-      if (type === "producto") tpl = "tplFormProducto";
-      if (type === "imagen") tpl = "tplFormImagen";
-      document.getElementById("formContainer").innerHTML =
-        document.getElementById(tpl).innerHTML;
-      document.getElementById("formModalTitle").textContent =
-        type === "categoria" ? "Registrar categoría" :
-        type === "producto" ? "Registrar producto" : "Registrar imagen";
-
-      if (type === "producto") populateProductFormCategories();
-      if (type === "imagen") populateImageFormProducts();
-
-      const modal = new bootstrap.Modal(document.getElementById("formModal"));
-      modal.show();
-      initFormHandlers(type, modal);
-    }
-
-    function initFormHandlers(type, modalInstance) {
-      if (type === "categoria") {
-        const form = document.getElementById("formCategoria");
-        form.addEventListener("submit", async (e) => {
-          e.preventDefault();
-          const nombre = document.getElementById("catNombreF").value.trim();
-          if (!nombre) return alert("Ingrese nombre de categoría");
-          try {
-            const res = await authFetch(`${API_BASE}/categorias`, {
-              method: "POST",
-              body: JSON.stringify({ nombre })
-            });
-            if (!res.ok) {
-              if (res.status === 401 || res.status === 403) {
-                openLogin(); throw new Error('No autorizado');
-              }
-              throw new Error('Error al registrar categoría');
-            }
-            await loadCategories();
-            modalInstance.hide();
-            alert("Categoría registrada");
-          } catch (err) { alert(err.message); }
-        }, { once: true });
-      }
-
-      if (type === "producto") {
-        const form = document.getElementById("formProducto");
-        form.addEventListener("submit", async (e) => {
-          e.preventDefault();
-          const nombre = document.getElementById("prodNombreF").value.trim();
-          const precio = parseFloat(document.getElementById("prodPrecioF").value);
-          const categoria_id = parseInt(document.getElementById("prodCategoriaF").value, 10);
-          try {
-            const res = await authFetch(`${API_BASE}/productos`, {
-              method: "POST",
-              body: JSON.stringify({ nombre, precio, categoria_id })
-            });
-            if (!res.ok) {
-              if (res.status === 401 || res.status === 403) {
-                openLogin(); throw new Error('No autorizado');
-              }
-              throw new Error('Error al registrar producto');
-            }
-            imagesCache = {};
-            await loadProducts();
-            modalInstance.hide();
-            alert("Producto registrado");
-          } catch (err) { alert(err.message); }
-        }, { once: true });
-      }
-
-      if (type === "imagen") {
-        const form = document.getElementById("formImagen");
-        form.addEventListener("submit", async (e) => {
-          e.preventDefault();
-          const url = document.getElementById("imgUrlF").value.trim();
-          const producto_id = parseInt(document.getElementById("imgProductoF").value, 10);
-          try {
-            const res = await authFetch(`${API_BASE}/imagenes`, {
-              method: "POST",
-              body: JSON.stringify({ url, producto_id })
-            });
-            if (!res.ok) {
-              if (res.status === 401 || res.status === 403) {
-                openLogin(); throw new Error('No autorizado');
-              }
-              throw new Error('Error al guardar imagen');
-            }
-            delete imagesCache[producto_id];
-            await loadProducts();
-            modalInstance.hide();
-            alert("Imagen guardada");
-          } catch (err) { alert(err.message); }
-        }, { once: true });
-      }
-    }
-
-    function populateProductFormCategories() {
-      const sel = document.getElementById("prodCategoriaF");
-      sel.innerHTML = '<option value="" disabled selected>Seleccione...</option>';
-      allCategories.forEach(c => {
-        const opt = document.createElement("option");
-        opt.value = c.id;
-        opt.textContent = c.nombre;
-        sel.appendChild(opt);
-      });
-    }
-
-    function populateImageFormProducts() {
-      const sel = document.getElementById("imgProductoF");
-      sel.innerHTML = '<option value="" disabled selected>Seleccione...</option>';
-      allProducts.forEach(p => {
-        const opt = document.createElement("option");
-        opt.value = p.id;
-        opt.textContent = `${p.nombre} (ID: ${p.id})`;
-        sel.appendChild(opt);
-      });
-    }
-  </script>
-</body>
+    </script>
+  </body>
 </html>
