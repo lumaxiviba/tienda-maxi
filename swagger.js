@@ -9,12 +9,12 @@ const options = {
       version: "1.0.0",
       description: "Documentación de la API con Swagger",
     },
+    // Usar rutas relativas evita que librerías intenten parsear una URL completa
+    // que puede contener ':' y romper path-to-regexp. Documentamos la base API
+    // como '/api' y el frontend puede apuntar a la URL pública.
     servers: [
       {
-        url:
-          process.env.NODE_ENV === "production"
-            ? "https://tienda-maxi.onrender.com/api"
-            : "http://localhost:3000/api",
+        url: '/api',
       },
     ],
     components: {
