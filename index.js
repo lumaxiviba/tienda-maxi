@@ -24,10 +24,37 @@ app.use(express.json());
 app.use(express.static('frontend')); // Servir archivos estáticos desde la carpeta frontend
 
 // Rutas
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/categorias', require('./routes/categorias'));
-app.use('/api/productos', require('./routes/productos'));
-app.use('/api/imagenes', require('./routes/imagenes'));
+try {
+  console.log('-> Registrando ruta /api/auth');
+  app.use('/api/auth', require('./routes/auth'));
+} catch (e) {
+  console.error('Error registrando /api/auth', e);
+  throw e;
+}
+
+try {
+  console.log('-> Registrando ruta /api/categorias');
+  app.use('/api/categorias', require('./routes/categorias'));
+} catch (e) {
+  console.error('Error registrando /api/categorias', e);
+  throw e;
+}
+
+try {
+  console.log('-> Registrando ruta /api/productos');
+  app.use('/api/productos', require('./routes/productos'));
+} catch (e) {
+  console.error('Error registrando /api/productos', e);
+  throw e;
+}
+
+try {
+  console.log('-> Registrando ruta /api/imagenes');
+  app.use('/api/imagenes', require('./routes/imagenes'));
+} catch (e) {
+  console.error('Error registrando /api/imagenes', e);
+  throw e;
+}
 
 // Documentación Swagger
 swaggerDocs(app);
