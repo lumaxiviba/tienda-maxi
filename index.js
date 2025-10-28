@@ -1,8 +1,22 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const { swaggerDocs } = require('./swagger');
+
+// Verificar variables de entorno requeridas
+if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
+  console.error('Error: JWT_SECRET no está definido');
+  process.exit(1);
+}
+
 const app = express();
+
+// Manejo de errores global
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: 'Error interno del servidor' });
+});
 
 // Middlewares
 app.use(cors());
